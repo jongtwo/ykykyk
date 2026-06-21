@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>버티나무</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; }
+  #root { width: 100%; max-width: 390px; height: 100vh; max-height: 844px; position: relative; overflow: hidden; background: #fff; border-radius: 44px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+  @media (max-width: 430px) { #root { border-radius: 0; max-height: 100vh; box-shadow: none; } body { background: #fff; } }
+
+  :root {
+    --green-primary: #2D6A2D;
+    --green-mid: #3d8b3d;
+    --green-light: #e8f5e8;
+    --green-tag: #4CAF50;
+    --orange: #FF6B35;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --text-muted: #999;
+    --border: #e8e8e8;
+    --bg-light: #f8f8f8;
+  }
+
+  .screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #fff; overflow-y: auto; overflow-x: hidden; padding-bottom: 80px; }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* Status bar */
+  .status-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: #fff; position: sticky; top: 0; z-index: 10; }
+  .status-time { font-size: 15px; font-weight: 600; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+
+  /* Bottom Nav */
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 390px; height: 80px; background: #fff; border-top: 1px solid var(--border); display: flex; align-items: flex-start; padding-top: 10px; z-index: 100; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px; }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-size: 10px; font-weight: 500; color: var(--text-muted); }
+  .nav-item.active .nav-label { color: var(--green-primary); font-weight: 700; }
+  .nav-item.active .nav-icon-svg { color: var(--green-primary); }
+
+  /* Buttons */
+  .btn-primary { background: var(--green-primary); color: #fff; border: none; border-radius: 12px; padding: 14px 20px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-secondary { background: #fff; color: var(--text-primary); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 20px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-orange { background: var(--orange); color: #fff; border: none; border-radius: 20px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-green-sm { background: var(--green-primary); color: #fff; border: none; border-radius: 20px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  /* Tags */
+  .tag-nanum { background: var(--green-primary); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+  .tag-sale { background: var(--orange); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+  .tag-filter { background: var(--green-primary); color: #fff; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .tag-filter-outline { background: #fff; color: var(--text-primary); font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+  .bertibox { background: var(--green-light); border-radius: 12px; padding: 14px 16px; border-left: 3px solid var(--green-primary); }
+
+  /* Map placeholder */
+  .map-bg { background: linear-gradient(135deg, #e8f0e8 0%, #d4e8d4 50%, #c8dfc8 100%); position: relative; overflow: hidden; }
+  .map-grid { position: absolute; inset: 0; opacity: 0.3; }
+  .map-road { position: absolute; background: #fff; }
+  .price-pin { position: absolute; background: #fff; border: 2px solid var(--green-primary); border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--text-primary); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; transform: translateX(-50%); }
+  .price-pin.selected { background: var(--green-primary); color: #fff; border-color: var(--green-primary); }
+  .price-pin.expensive { border-color: #e53935; color: #e53935; }
+  .user-dot { position: absolute; width: 18px; height: 18px; background: #4285f4; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(66,133,244,0.5); transform: translate(-50%,-50%); }
+  .user-dot::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; background: rgba(66,133,244,0.15); }
+
+  /* Slide in transition */
+  .slide-enter { animation: slideIn 0.25s ease; }
+  .slide-back { animation: slideBack 0.25s ease; }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes slideBack { from { transform: translateX(-30%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  .heart-btn { background: none; border: none; cursor: pointer; font-size: 20px; }
+  .star { color: #FFC107; }
+
+  .level-badge { background: var(--green-light); color: var(--green-primary); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .savings-amount { color: var(--green-primary); font-size: 28px; font-weight: 800; }
+
+  .tree-level { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+  .tree-icon { font-size: 28px; }
+  .tree-lv { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+  .tree-lv.active { color: var(--green-primary); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+// ── DUMMY DATA ─────────────────────────────────────────────────────────────
+const restaurants = [
+  { id: 1, name: "든든한 한끼 국밥", category: "돼지국밥 · 한식", distance: "320m", walkMin: "도보 4분", rating: 4.6, reviews: 128, price: 5000, address: "서울 마포구 와우산로 66", hours: "10:00 ~ 21:00", emoji: "🍲", bertiComment: "진하고 깊은 국물이 푸짐한 고기까지! 이 가격에 이 퀄리티, 오늘의 가성비 최고예요.", menus: [{ name: "돼지국밥", price: 5000 }, { name: "순대국밥", price: 5500 }, { name: "내장국밥", price: 6000 }], color: "#8B5E3C" },
+  { id: 2, name: "그린데이 샌드위치", category: "샌드위치", distance: "450m", walkMin: "도보 6분", rating: 4.4, reviews: 87, price: 4500, address: "서울 마포구 서교동 358-1", hours: "09:00 ~ 20:00", emoji: "🥪", bertiComment: "신선한 야채와 부드러운 빵의 조합! 점심 한 끼로 딱이에요.", menus: [{ name: "클럽 샌드위치", price: 4500 }, { name: "BLT 샌드위치", price: 4000 }, { name: "에그 샌드위치", price: 3500 }], color: "#5B8C5A" },
+  { id: 3, name: "모닝컴팩트 카페", category: "아메리카노 · 카페", distance: "280m", walkMin: "도보 4분", rating: 4.3, reviews: 215, price: 2500, address: "서울 마포구 망원동 12-3", hours: "08:00 ~ 22:00", emoji: "☕", bertiComment: "진한 원두향, 저렴한 가격. 마포 최고 가성비 카페!", menus: [{ name: "아메리카노", price: 2500 }, { name: "카페라떼", price: 3000 }, { name: "바닐라라떼", price: 3500 }], color: "#6B4E3D" },
+  { id: 4, name: "오늘 가든", category: "한정식", distance: "560m", walkMin: "도보 7분", rating: 4.2, reviews: 64, price: 6700, address: "서울 마포구 합정동 77", hours: "11:00 ~ 21:00", emoji: "🥗", bertiComment: "정갈하고 건강한 한 상. 채소 반찬이 매일 바뀌어요.", menus: [{ name: "한정식 A", price: 6700 }, { name: "한정식 B", price: 7500 }], color: "#4E8C4E" },
+];
+
+const bertiTokItems = [
+  { id: 1, type: "나눔", store: "CU 서교스타점", time: "5분 전", title: "킨타타 콘트라베이스 라떼", desc: "1+1으로 구매했어요! 한 개 나눠합니다 😊", tag: "무료 나눔", distance: "120m", btnType: "green", emoji: "☕" },
+  { id: 2, type: "판매", store: "GS25 서교분점", time: "18분 전", title: "포카리스웨트 500ml", desc: "1+1 상품 판매해요! 시원하게 드세요 :)", tag: "1,200원", origPrice: "정가 2,400원", distance: null, btnType: "orange", emoji: "💧" },
+  { id: 3, type: "나눔", store: "CU 연남로점", time: "32분 전", title: "허쉬 초코바", desc: "1+1으로 구매했어요! 맛있게 드세요 🍫", tag: "무료 나눔", distance: "350m", btnType: "green", emoji: "🍫" },
+  { id: 4, type: "판매", store: "세븐일레븐 홍대점", time: "45분 전", title: "불닭볶음면 컵라면", desc: "1+1 이벤트! 집 가는 길에 필요하신 분?", tag: "800원", origPrice: "정가 1,600원", distance: null, btnType: "orange", emoji: "🍜" },
+  { id: 5, type: "나눔", store: "CU 합정점", time: "1시간 전", title: "삼각김밥 (참치마요)", desc: "하나 남았어요~ 빨리 오세요!", tag: "무료 나눔", distance: "210m", btnType: "green", emoji: "🍙" },
+];
+
+// ── SVG ICONS ──────────────────────────────────────────────────────────────
+const MapIcon = ({ active }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#2D6A2D" : "#999"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+const GiftIcon = ({ active }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#2D6A2D" : "#999"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 12 20 22 4 22 4 12"/>
+    <rect x="2" y="7" width="20" height="5"/>
+    <line x1="12" y1="22" x2="12" y2="7"/>
+    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+  </svg>
+);
+const PersonIcon = ({ active }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#2D6A2D" : "#999"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+const BellIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+);
+const ShareIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+);
+const NaviIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2">
+    <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+  </svg>
+);
+const SettingsIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+const SearchIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+const FilterIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
+    <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+  </svg>
+);
+const ChevronRight = ({ color = "#999" }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+);
+const LocationIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+const ClockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
+);
+
+// ── STATUS BAR ─────────────────────────────────────────────────────────────
+const StatusBar = () => (
+  <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: '#fff', position: 'sticky', top: 0, zIndex: 10 }}>
+    <span style={{ fontSize: 15, fontWeight: 700 }}>9:41</span>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <svg width="16" height="12" viewBox="0 0 16 12"><rect x="0" y="4" width="3" height="8" rx="1" fill="#333"/><rect x="4.5" y="2.5" width="3" height="9.5" rx="1" fill="#333"/><rect x="9" y="0.5" width="3" height="11.5" rx="1" fill="#333"/><rect x="13.5" y="0" width="2" height="3" rx="0.5" fill="#ccc"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2C5 2 2.5 3.5 1 5.5L8 12L15 5.5C13.5 3.5 11 2 8 2z" fill="#333"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="2.5" stroke="#333" strokeWidth="1.2" fill="none"/><rect x="22" y="4" width="2" height="4" rx="1" fill="#333"/><rect x="1.2" y="2.2" width="16" height="7.6" rx="1.5" fill="#333"/></svg>
+    </div>
+  </div>
+);
+
+// ── BOTTOM NAV ─────────────────────────────────────────────────────────────
+const BottomNav = ({ active, setTab }) => (
+  <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 390, height: 80, background: '#fff', borderTop: '1px solid #e8e8e8', display: 'flex', alignItems: 'flex-start', paddingTop: 10, zIndex: 100 }}>
+    {[
+      { id: 'map', label: '버티맵', Icon: MapIcon },
+      { id: 'tok', label: '버티톡', Icon: GiftIcon },
+      { id: 'mypage', label: '버티자', Icon: PersonIcon },
+    ].map(({ id, label, Icon }) => (
+      <div key={id} onClick={() => setTab(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', padding: 4 }}>
+        <Icon active={active === id} />
+        <span style={{ fontSize: 10, fontWeight: active === id ? 700 : 500, color: active === id ? '#2D6A2D' : '#999' }}>{label}</span>
+      </div>
+    ))}
+  </div>
+);
+
+// ── RESTAURANT IMAGE (emoji-based) ─────────────────────────────────────────
+const RestaurantImg = ({ r, size = 60, radius = 12 }) => (
+  <div style={{ width: size, height: size, background: `linear-gradient(135deg, ${r.color}22, ${r.color}44)`, borderRadius: radius, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.5, flexShrink: 0, border: `1px solid ${r.color}22` }}>
+    {r.emoji}
+  </div>
+);
+
+// ── MAP SCREEN ─────────────────────────────────────────────────────────────
+const MapScreen = ({ setScreen }) => {
+  const [selected, setSelected] = useState(null);
+  const [filterActive, setFilterActive] = useState('식당');
+
+  const pins = [
+    { id: 1, x: '48%', y: '52%', price: '5,000원', rid: 1, expensive: false },
+    { id: 2, x: '72%', y: '38%', price: '6,700원', rid: 4, expensive: false },
+    { id: 3, x: '25%', y: '44%', price: '3,500원', rid: 2, expensive: false },
+    { id: 4, x: '62%', y: '28%', price: '6,700원', rid: 4, expensive: false },
+    { id: 5, x: '78%', y: '58%', price: '8,000원', rid: 3, expensive: true },
+    { id: 6, x: '55%', y: '70%', price: '6,000원', rid: 1, expensive: true },
+    { id: 7, x: '38%', y: '36%', price: '6,000원', rid: 2, expensive: false },
+  ];
+
+  return (
+    <div className="screen" style={{ background: '#fff', paddingBottom: 80 }}>
+      <StatusBar />
+      {/* Header */}
+      <div style={{ padding: '4px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 22 }}>🌳</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: '#2D6A2D' }}>버티나무</span>
+          </div>
+          <div style={{ fontSize: 11, color: '#888', marginLeft: 30 }}>고량가 시대, 하루를 버티는 가장 작은 방법</div>
+        </div>
+        <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <BellIcon />
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{ padding: '0 16px 12px' }}>
+        <div style={{ background: '#f5f5f5', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '12px 14px', gap: 8 }}>
+          <SearchIcon />
+          <span style={{ color: '#bbb', fontSize: 14 }}>지역, 가게, 메뉴를 검색해 보세요</span>
+          <div style={{ marginLeft: 'auto', cursor: 'pointer' }}><FilterIcon /></div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {['식당', '카페', '1만원 이하', '가까운 순'].map((f, i) => (
+          <button key={f} onClick={() => setFilterActive(f)} style={{ flexShrink: 0, background: filterActive === f ? '#2D6A2D' : '#fff', color: filterActive === f ? '#fff' : '#333', fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 20, border: filterActive === f ? 'none' : '1.5px solid #e0e0e0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            {i === 0 && '🍽 '}
+            {i === 1 && '☕ '}
+            {f}
+            {i >= 2 && <span style={{ fontSize: 10 }}>▾</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Map */}
+      <div style={{ margin: '0 16px', borderRadius: 16, overflow: 'hidden', height: 230, position: 'relative', background: 'linear-gradient(145deg, #dce8dc, #c8dbc8)' }}>
+        {/* Grid roads */}
+        {[20, 45, 65, 82].map(y => (
+          <div key={y} style={{ position: 'absolute', left: 0, right: 0, top: `${y}%`, height: 8, background: 'rgba(255,255,255,0.7)' }} />
+        ))}
+        {[15, 35, 55, 75, 90].map(x => (
+          <div key={x} style={{ position: 'absolute', top: 0, bottom: 0, left: `${x}%`, width: 8, background: 'rgba(255,255,255,0.7)' }} />
+        ))}
+        {/* Building blocks */}
+        {[[8,8,18,14],[30,8,12,12],[60,8,15,14],[82,5,14,16],[8,32,20,18],[35,28,14,14],[60,28,16,12],[82,28,12,10],[8,60,15,16],[30,58,18,12],[58,62,12,12],[80,58,14,10]].map(([x,y,w,h],i) => (
+          <div key={i} style={{ position: 'absolute', left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%`, background: 'rgba(180,200,175,0.6)', borderRadius: 4 }} />
+        ))}
+        {/* User dot */}
+        <div style={{ position: 'absolute', left: '48%', top: '52%', width: 18, height: 18, background: '#4285f4', borderRadius: '50%', border: '3px solid #fff', boxShadow: '0 2px 8px rgba(66,133,244,0.5)', transform: 'translate(-50%,-50%)', zIndex: 5 }}>
+          <div style={{ position: 'absolute', inset: -8, borderRadius: '50%', background: 'rgba(66,133,244,0.15)' }} />
+        </div>
+        {/* Price pins */}
+        {pins.map(pin => (
+          <div key={pin.id} onClick={() => { setSelected(pin.id === selected ? null : pin.id); setScreen({ type: 'detail', id: pin.rid }); }}
+            style={{ position: 'absolute', left: pin.x, top: pin.y, background: selected === pin.id ? '#2D6A2D' : '#fff', border: `2px solid ${pin.expensive ? '#e53935' : (selected === pin.id ? '#2D6A2D' : '#2D6A2D')}`, borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 700, color: selected === pin.id ? '#fff' : (pin.expensive ? '#e53935' : '#1a1a1a'), whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer', transform: 'translateX(-50%)', zIndex: 4 }}>
+            {pin.price}
+          </div>
+        ))}
+        {/* Cluster pins */}
+        {[{ x: '70%', y: '32%' }, { x: '60%', y: '55%' }].map((p, i) => (
+          <div key={i} style={{ position: 'absolute', left: p.x, top: p.y, width: 26, height: 26, background: '#2D6A2D', borderRadius: '50%', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700, transform: 'translate(-50%,-50%)', zIndex: 4 }}>2</div>
+        ))}
+      </div>
+
+      {/* Today's picks */}
+      <div style={{ padding: '20px 16px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 800 }}>오늘의 가성비 추천</span>
+          <span style={{ fontSize: 13, color: '#2D6A2D', fontWeight: 600, cursor: 'pointer' }}>더보기 ›</span>
+        </div>
+        {restaurants.slice(0, 3).map(r => (
+          <div key={r.id} onClick={() => setScreen({ type: 'detail', id: r.id })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}>
+            <RestaurantImg r={r} size={64} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{r.name}</div>
+              <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{r.category} · {r.distance}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                <span style={{ color: '#FFC107', fontSize: 12 }}>★</span>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>{r.rating}</span>
+                <span style={{ fontSize: 12, color: '#ccc' }}>({r.reviews})</span>
+              </div>
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: '#2D6A2D' }}>{r.price.toLocaleString()}원</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── DETAIL SCREEN ──────────────────────────────────────────────────────────
+const DetailScreen = ({ rid, goBack }) => {
+  const r = restaurants.find(x => x.id === rid) || restaurants[0];
+  const [hearted, setHearted] = useState(false);
+
+  return (
+    <div className="screen slide-enter" style={{ paddingBottom: 100 }}>
+      <div style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10 }}>
+        <StatusBar />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 10px' }}>
+          <button onClick={goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <button style={{ background: 'none', border: 'none', cursor: 'pointer' }}><ShareIcon /></button>
+            <button onClick={() => setHearted(!hearted)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22 }}>{hearted ? '❤️' : '🤍'}</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero image */}
+      <div style={{ margin: '0 16px', borderRadius: 20, overflow: 'hidden', height: 200, background: `linear-gradient(135deg, ${r.color}33, ${r.color}66)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <div style={{ fontSize: 80 }}>{r.emoji}</div>
+        <div style={{ position: 'absolute', bottom: 10, right: 14, background: 'rgba(0,0,0,0.45)', color: '#fff', fontSize: 12, padding: '3px 10px', borderRadius: 20 }}>1/5</div>
+      </div>
+
+      {/* Info */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800 }}>{r.name}</h1>
+            <div style={{ color: '#888', fontSize: 13, marginTop: 2 }}>{r.category}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+              <span style={{ color: '#FFC107' }}>★</span>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{r.rating}</span>
+              <span style={{ color: '#999', fontSize: 13 }}>({r.reviews}) · 리뷰 {r.reviews}개</span>
+            </div>
+          </div>
+          <div style={{ background: '#e8f5e8', borderRadius: 12, padding: '8px 14px', textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#2D6A2D' }}>{r.price.toLocaleString()}원</div>
+            <div style={{ fontSize: 11, color: '#666' }}>평균 가격</div>
+          </div>
+        </div>
+
+        {/* Berti comment */}
+        <div style={{ background: '#f0f7f0', borderRadius: 14, padding: '14px 16px', marginTop: 14, borderLeft: '3px solid #2D6A2D' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <span>🍀</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#2D6A2D' }}>버티나무가 추천해요!</span>
+          </div>
+          <p style={{ fontSize: 13, color: '#444', lineHeight: 1.6 }}>{r.bertiComment}</p>
+        </div>
+
+        {/* Location */}
+        <div style={{ marginTop: 16, padding: '14px 0', borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <LocationIcon />
+                <span style={{ fontSize: 14, fontWeight: 500 }}>{r.address}</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#999', marginLeft: 20 }}>{r.distance} · {r.walkMin}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                <ClockIcon />
+                <span style={{ fontSize: 13, color: '#555' }}>영업 중 · {r.hours}</span>
+              </div>
+            </div>
+            <span style={{ fontSize: 13, color: '#2D6A2D', fontWeight: 600, cursor: 'pointer' }}>지도보기 ›</span>
+          </div>
+        </div>
+
+        {/* Menu */}
+        <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>대표 메뉴</div>
+          {r.menus.map(m => (
+            <div key={m.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f7f7f7' }}>
+              <span style={{ fontSize: 15 }}>{m.name}</span>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>{m.price.toLocaleString()}원</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA Buttons */}
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 390, padding: '12px 16px 28px', background: '#fff', borderTop: '1px solid #f0f0f0', display: 'flex', gap: 10, zIndex: 100 }}>
+        <button style={{ flex: 1, background: '#2D6A2D', color: '#fff', border: 'none', borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <NaviIcon /> 길찾기
+        </button>
+        <button style={{ flex: 1, background: '#fff', color: '#333', border: '1.5px solid #e0e0e0', borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <ShareIcon /> 공유하기
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ── BERTITOK SCREEN ────────────────────────────────────────────────────────
+const TokScreen = () => {
+  const [registered, setRegistered] = useState(false);
+
+  return (
+    <div className="screen" style={{ paddingBottom: 80 }}>
+      <StatusBar />
+      <div style={{ padding: '4px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 22 }}>🌳</span>
+          <span style={{ fontSize: 20, fontWeight: 800, color: '#2D6A2D' }}>버티나무</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={() => setRegistered(!registered)} style={{ background: registered ? '#e8f5e8' : '#2D6A2D', color: registered ? '#2D6A2D' : '#fff', border: registered ? '1.5px solid #2D6A2D' : 'none', borderRadius: 20, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            {registered ? '✓ 등록완료' : '+ 등록하기'}
+          </button>
+          <BellIcon />
+        </div>
+      </div>
+
+      {/* Banner */}
+      <div style={{ margin: '0 16px 16px', background: 'linear-gradient(135deg, #e8f5e8, #d0ebd0)', borderRadius: 16, padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#1a3d1a', lineHeight: 1.3 }}>1+1은 나누고,<br />비용은 줄이고!</div>
+          <div style={{ fontSize: 12, color: '#555', marginTop: 8, lineHeight: 1.5 }}>편의점 1+1 상품을 등록하고<br />이웃과 나누거나 저렴하게 구매해 보세요.</div>
+        </div>
+        <div style={{ fontSize: 48 }}>🍀</div>
+      </div>
+
+      {/* Location */}
+      <div style={{ margin: '0 16px 12px', padding: '12px 16px', background: '#f8f8f8', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+            <LocationIcon />
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>내 주변 나눔/판매</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#888', marginLeft: 19 }}>마포구 서교동 반경 1km</div>
+        </div>
+        <span style={{ fontSize: 13, color: '#2D6A2D', fontWeight: 600, cursor: 'pointer' }}>변경 ›</span>
+      </div>
+
+      {/* Mini map */}
+      <div style={{ margin: '0 16px 16px', height: 90, background: 'linear-gradient(145deg, #dce8dc, #c8dbc8)', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
+        {[20, 55, 80].map(y => <div key={y} style={{ position: 'absolute', left: 0, right: 0, top: `${y}%`, height: 5, background: 'rgba(255,255,255,0.6)' }} />)}
+        {[20, 45, 70].map(x => <div key={x} style={{ position: 'absolute', top: 0, bottom: 0, left: `${x}%`, width: 5, background: 'rgba(255,255,255,0.6)' }} />)}
+        <div style={{ position: 'absolute', left: '50%', top: '50%', width: 12, height: 12, background: '#4285f4', borderRadius: '50%', border: '2px solid #fff', transform: 'translate(-50%,-50%)', zIndex: 2 }} />
+        {[{ x: '25%', y: '35%' }, { x: '72%', y: '45%' }].map((p, i) => (
+          <div key={i} style={{ position: 'absolute', left: p.x, top: p.y, width: 20, height: 20, background: '#2D6A2D', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translate(-50%,-50%)' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+        ))}
+      </div>
+
+      {/* Items */}
+      <div style={{ padding: '0 16px' }}>
+        {bertiTokItems.map(item => (
+          <div key={item.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid #f0f0f0', marginBottom: 12, padding: 16, boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ background: item.type === '나눔' ? '#2D6A2D' : '#FF6B35', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>{item.type}</span>
+                <span style={{ fontSize: 12, color: '#888' }}>{item.store}</span>
+              </div>
+              <span style={{ fontSize: 11, color: '#bbb' }}>{item.time}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 64, height: 64, background: '#f5f5f5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>{item.emoji}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{item.title}</div>
+                <div style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>{item.desc}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                  {item.type === '나눔' ? (
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#2D6A2D' }}>무료 나눔</span>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: '#FF6B35' }}>{item.tag}</span>
+                      <span style={{ fontSize: 11, color: '#bbb', textDecoration: 'line-through' }}>{item.origPrice}</span>
+                    </>
+                  )}
+                  {item.distance && <span style={{ fontSize: 12, color: '#999' }}>· {item.distance}</span>}
+                </div>
+              </div>
+              <button style={{ background: item.btnType === 'green' ? '#2D6A2D' : '#FF6B35', color: '#fff', border: 'none', borderRadius: 20, padding: '10px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                {item.type === '나눔' ? '나눔 받기' : '구매하기'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── MY PAGE ────────────────────────────────────────────────────────────────
+const MyPage = ({ setScreen }) => {
+  const [likedIdx, setLikedIdx] = useState([0, 1, 2, 3]);
+
+  return (
+    <div className="screen" style={{ paddingBottom: 80 }}>
+      <StatusBar />
+      <div style={{ padding: '4px 16px 16px', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <SettingsIcon />
+        <BellIcon />
+      </div>
+
+      {/* Profile */}
+      <div style={{ padding: '0 16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#e8f5e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, border: '3px solid #2D6A2D' }}>🧑</div>
+        <div>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>버티는 우리가 답이다!</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 20, fontWeight: 800 }}>버티나무님</span>
+            <span style={{ background: '#e8f5e8', color: '#2D6A2D', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 10 }}>LV.2</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Savings card */}
+      <div style={{ margin: '0 16px 20px', background: '#fff', borderRadius: 20, border: '1px solid #e8e8e8', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+        <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>내가 아낀 금액</div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: '#2D6A2D', marginBottom: 16 }}>128,400원</div>
+        <div style={{ fontSize: 12, color: '#bbb', marginBottom: 16 }}>이번 달 기준</div>
+        {/* Tree levels */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {[
+            { lv: 1, icon: '🌱', active: false },
+            { lv: 2, icon: '🌳', active: true },
+            { lv: 3, icon: '🌲', active: false, locked: true },
+          ].map(t => (
+            <div key={t.lv} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 12, background: t.active ? '#e8f5e8' : (t.locked ? '#f5f5f5' : '#f0f7f0'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, border: t.active ? '2px solid #2D6A2D' : 'none' }}>
+                {t.locked ? '❓' : t.icon}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: t.active ? '#2D6A2D' : '#bbb' }}>LV.{t.lv}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Liked stores */}
+      <div style={{ padding: '0 16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 800 }}>관심 가게 <span style={{ color: '#2D6A2D' }}>12</span></span>
+          <span style={{ fontSize: 13, color: '#2D6A2D', fontWeight: 600, cursor: 'pointer' }}>전체 보기 ›</span>
+        </div>
+        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+          {restaurants.map((r, i) => (
+            <div key={r.id} onClick={() => setScreen({ type: 'detail', id: r.id })} style={{ flexShrink: 0, width: 90, cursor: 'pointer' }}>
+              <div style={{ width: 90, height: 90, borderRadius: 16, background: `linear-gradient(135deg, ${r.color}22, ${r.color}55)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, position: 'relative', marginBottom: 8 }}>
+                {r.emoji}
+                <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 16 }}>❤️</div>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>{r.name.length > 6 ? r.name.slice(0, 6) + '..' : r.name}</div>
+              <div style={{ fontSize: 11, color: '#999', textAlign: 'center' }}>{r.distance}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Activity */}
+      <div style={{ padding: '0 16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 800 }}>나의 활동</span>
+          <span style={{ fontSize: 13, color: '#2D6A2D', fontWeight: 600, cursor: 'pointer' }}>전체 보기 ›</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[{ label: '등록한 나눔', value: '8건' }, { label: '거래 완료', value: '6건' }].map(a => (
+            <div key={a.label} style={{ flex: 1, background: '#f8f8f8', borderRadius: 14, padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{a.label}</div>
+              <div style={{ fontSize: 24, fontWeight: 800 }}>{a.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Menu list */}
+      <div style={{ padding: '0 16px' }}>
+        {[
+          { icon: '🎟', label: '쿠폰함', badge: '3개 보유' },
+          { icon: '📋', label: '이용 내역' },
+          { icon: '⚙️', label: '설정' },
+        ].map(m => (
+          <div key={m.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f5f5f5', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>{m.icon}</span>
+              <span style={{ fontSize: 15, fontWeight: 500 }}>{m.label}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {m.badge && <span style={{ fontSize: 13, color: '#888' }}>{m.badge}</span>}
+              <ChevronRight />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── APP ROOT ───────────────────────────────────────────────────────────────
+const App = () => {
+  const [tab, setTab] = useState('map');
+  const [screen, setScreen] = useState(null); // { type: 'detail', id: N }
+
+  const handleSetTab = (t) => {
+    setScreen(null);
+    setTab(t);
+  };
+
+  const goBack = () => setScreen(null);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Main screens */}
+      {!screen && tab === 'map' && <MapScreen setScreen={setScreen} />}
+      {!screen && tab === 'tok' && <TokScreen />}
+      {!screen && tab === 'mypage' && <MyPage setScreen={setScreen} />}
+
+      {/* Detail overlay */}
+      {screen?.type === 'detail' && <DetailScreen rid={screen.id} goBack={goBack} />}
+
+      {/* Bottom nav (always visible unless on detail) */}
+      {!screen && <BottomNav active={tab} setTab={handleSetTab} />}
+      {screen && (
+        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 390, height: 80, background: '#fff', borderTop: '1px solid #e8e8e8', display: 'flex', alignItems: 'flex-start', paddingTop: 10, zIndex: 100 }}>
+          {[
+            { id: 'map', label: '버티맵', Icon: MapIcon },
+            { id: 'tok', label: '버티톡', Icon: GiftIcon },
+            { id: 'mypage', label: '버티자', Icon: PersonIcon },
+          ].map(({ id, label, Icon }) => (
+            <div key={id} onClick={() => handleSetTab(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', padding: 4 }}>
+              <Icon active={tab === id} />
+              <span style={{ fontSize: 10, fontWeight: tab === id ? 700 : 500, color: tab === id ? '#2D6A2D' : '#999' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
